@@ -11,7 +11,7 @@ const humanTakeover = {}; // Armazena os IDs de chat em atendimento humano
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
-const port = 3720; // Porta de Servidor
+const port = process.env.PORT || 3720; // Porta de Servidor
 
 // Configuração do WhatsApp Client
 let client = null;
@@ -185,4 +185,5 @@ io.on('connection', (socket) => {
 server.listen(port, () => {
     console.log(`Servidor rodando em http://localhost:${port}`);
     console.log('Acesse o endereço para ver o Painel de Controle.');
+
 });
