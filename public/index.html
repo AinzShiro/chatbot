@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel de Controle do Chatbot</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .status-box { padding: 10px; margin: 20px 0; border-radius: 5px; font-weight: bold; }
+        .status-connected { background-color: #d4edda; color: #155724; }
+        .status-disconnected { background-color: #f8d7da; color: #721c24; }
+        .status-qr { background-color: #fff3cd; color: #856404; }
+        #qrcode { margin: 20px auto; border: 1px solid #ccc; padding: 10px; display: inline-block; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; border: none; border-radius: 5px; }
+        #startBtn { background-color: #28a745; color: white; }
+        #stopBtn { background-color: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🍔 Painel de Controle do Chatbot WhatsApp</h2>
+        <hr>
+
+        <div id="status" class="status-box status-disconnected">
+            Status: Desconectado
+        </div>
+
+        <div id="qrcode"></div>
+        <p id="qr-message">Clique em **Iniciar Chatbot** para gerar o QR Code.</p>
+
+        <button id="startBtn">Iniciar Chatbot</button>
+        <button id="stopBtn">Encerrar Chatbot</button>
+        <p>Use o WhatsApp do celular para escanear o QR Code. Isso conecta seu número ao chatbot.</p>
+    </div>
+
+    <script>
+        const socket = io();
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusDiv = document.getElementById('status');
+        const qrMessage = document.getElementById('qr-message');
+        const qrDiv = document.getElementById('qrcode');
+        let qrcode = new QRCode(qrDiv, { width: 256, height: 256 });
+        
+        // --- Funções de Atualização da UI ---
+        
+        function updateStatus(newStatus) {
+            statusDiv.textContent = `Status: ${newStatus}`;
+            statusDiv.className = 'status-box';
+            
+            if (newStatus.includes('Conectado')) {
+                statusDiv.classList.add('status-connected');
+                qrMessage.style.display = 'none';
+                qrDiv.style.display = 'none';
+            } else if (newStatus.includes('Aguardando QR')) {
+                statusDiv.classList.add('status-qr');
+                qrMessage.textContent = 'Escaneie este QR Code com o WhatsApp do seu celular:';
+                qrMessage.style.display = 'block';
+                qrDiv.style.display = 'block';
+            } else {
+                statusDiv.classList.add('status-disconnected');
+                qrMessage.textContent = 'Clique em Iniciar Chatbot para gerar o QR Code.';
+                qrMessage.style.display = 'block';
+                qrDiv.style.display = 'none';
+            }
+        }
+
+        // --- Eventos do Socket.io ---
+        
+        // Recebe o status do servidor (inicial ou após alteração)
+        socket.on('status', (status) => {
+            updateStatus(status);
+        });
+
+        // Recebe o QR Code do servidor
+        socket.on('qr', (qr) => {
+            qrcode.makeCode(qr); // Desenha o QR Code
+            updateStatus('Aguardando QR');
+        });
+
+        // --- Eventos de Botão ---
+        
+        startBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/start', { method: 'POST' });
+                const data = await response.json();
+                alert(data.message);
+                updateStatus('Iniciando...');
+            } catch (e) {
+                alert('Erro ao iniciar o servidor.');
+            }
+        });
+
+        stopBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/stop', { method: 'POST' });
+                const data = await response.json();
+                alert(data.message);
+                updateStatus('Encerrado');
+            } catch (e) {
+                alert('Erro ao encerrar o servidor.');
+            }
+        });
+
+    </script>
+</body>
+</html>
