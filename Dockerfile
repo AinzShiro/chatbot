@@ -1,10 +1,15 @@
 # Usa uma imagem base oficial do Node.js
 FROM node:20-slim
 
+# Define o user para evitar problemas de permissão com o Puppeteer
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+# Define o caminho do executável do Chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 # Instala as dependências necessárias do Chromium (Puppeteer)
-# Esta é a parte CRÍTICA para o whatsapp-web.js funcionar
 RUN apt-get update && \
     apt-get install -yq --no-install-recommends \
+    chromium \
     gconf-service \
     libappindicator1 \
     libasound2 \
@@ -44,13 +49,10 @@ WORKDIR /usr/src/app
 
 # Copia os arquivos de definição do projeto e instala as dependências
 COPY package*.json ./
-RUN npm install
+RUN npm install --omit=dev
 
 # Copia o restante dos arquivos do aplicativo
 COPY . .
-
-# Expõe a porta que o servidor Node.js irá ouvir
-EXPOSE 3720
 
 # Comando para iniciar o servidor Node.js
 CMD ["node", "server.js"]
